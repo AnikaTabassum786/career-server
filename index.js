@@ -34,8 +34,22 @@ async function run() {
         // Job Api
 
         app.get('/jobs', async (req,res)=>{
-            const cursor= jobCollection.find();
+
+            const email = req.query.email;
+            const query={}; //all data will come
+
+            if(email){
+                query.hr_email = email;
+            }
+
+            const cursor= jobCollection.find(query);
             const result = await cursor.toArray();
+            res.send(result)
+        })
+
+        app.post('/jobs',async (req,res)=>{
+            const newJob = req.body;
+            const result = await jobCollection.insertOne(newJob)
             res.send(result)
         })
 
