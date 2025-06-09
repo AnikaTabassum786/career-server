@@ -27,7 +27,18 @@ const logger = (req,res,next) =>{
 const verifyToken=(req,res,next)=>{
   const token = req?.cookies?.token;
   console.log('cookie in the middleware',token)
-  next()
+
+  if(!token){
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+
+  jwt.verify(token,process.env.JWT_ACCESS_SECRET,(err,decoded)=>{
+    if(err){
+        return res.status(401).send({message:'unauthorized access'})
+    }
+    req.decoded = decoded;
+    next()
+  })
 }
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q12amc9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -156,7 +167,10 @@ async function run() {
 
             const email = req.query.email;
             
-            console.log(req.cookies)
+            // console.log(req.cookies)
+            if(email !== req.decoded.email){
+              return res.status(403).send({message:'Forbidden Access'})
+            }
 
             const query = {
                 applicant: email
