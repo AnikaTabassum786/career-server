@@ -2,12 +2,20 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const port = 3000
 require('dotenv').config()
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-app.use(cors());
+// middleware
+
+// app.use(cors());  // for localStorage
+
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials:true
+}));
 app.use(express.json())
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q12amc9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -33,12 +41,34 @@ async function run() {
         const applicationsCollection = client.db("job_portal").collection("applications")
 
         //JWT token related api
+
+        // localStorage
+
+        /*
         app.post('/jwt', async (req, res) => {
             const { email } = req.body;
             const user = { email }
-            const token = jwt.sign(user, 'secret', { expiresIn: '1h' }) //The user data (here, just the email)
+            const token = jwt.sign(user, process.env.JWT_ACCESS_SECRET , { expiresIn: '1h' }) //The user data (here, just the email)
             res.send({ token })
         })
+       */
+
+        // http Cookie
+
+        app.post('/jwt',async(req,res)=>{
+            const userData = req.body;
+            const token = jwt.sign(userData,process.env.JWT_ACCESS_SECRET,{expiresIn:'1d'}) 
+
+            // set token in cookies
+            res.cookie('token',token,{
+                httpOnly:true,
+                secure:false
+            })
+
+            res.send({success:true})
+        })
+
+
 
 
 

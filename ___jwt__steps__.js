@@ -5,3 +5,9 @@
  * 3. on the client side set token to the localstorage
  * 
 */
+
+/**
+ *   using http only cookies
+
+    1. 
+ */
