@@ -19,6 +19,16 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Firebase
+var admin = require("firebase-admin");
+
+var serviceAccount = require('./user-management-5f10f-firebase-adminsdk-fbsvc-afc0f01f33.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
 const logger = (req,res,next) =>{
     console.log('inside the logger middleware')
     next()
@@ -39,6 +49,20 @@ const verifyToken=(req,res,next)=>{
     req.decoded = decoded;
     next()
   })
+}
+
+const verifyFirebaseToken = async (req,res,next) =>{
+    const authHeader = req.headers?.authorization;
+    const token = authHeader.split(' ')[1];
+
+    if(!token){
+        return res.send(401).send({message:'unauthorized access'})
+    }
+    const userInfo = await admin.auth().verifyIdToken(token)
+    console.log('inside the token', userInfo)
+    req.tokenEmail = userInfo.email;
+    next();
+ 
 }
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q12amc9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -113,7 +137,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/jobs/applications', async (req, res) => {
+        app.get('/jobs/applications',verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { hr_email: email };
             const jobs = await jobCollection.find(query).toArray()
@@ -163,14 +187,21 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/applications',logger, verifyToken, async (req, res) => {
+        app.get('/applications',logger,verifyFirebaseToken, async (req, res) => {
 
             const email = req.query.email;
-            
-            // console.log(req.cookies)
-            if(email !== req.decoded.email){
-              return res.status(403).send({message:'Forbidden Access'})
+  
+            // Firebase
+
+            if(req.tokenEmail != email){
+                return res.status(403).send({message: 'forbidden access'})
             }
+            
+            // Cookie
+
+            // if(email !== req.decoded.email){
+            //   return res.status(403).send({message:'Forbidden Access'})
+            // }
 
             const query = {
                 applicant: email
